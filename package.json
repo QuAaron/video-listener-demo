@@ -1,0 +1,32 @@
+{
+  "name": "video-listener-demo",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "本地标签页音频转写与关键帧采集 Demo，不读取字幕、不上传录音。",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "assets": "node scripts/assets.mjs",
+    "predev": "npm run assets",
+    "dev": "vite --host 127.0.0.1 --port 4183 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "npm run assets",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4183 --strictPort",
+    "test": "vitest run",
+    "test:asr": "RUN_ASR=1 vitest run tests/asr.integration.test.ts",
+    "test:vision": "node --experimental-strip-types scripts/vision-smoke.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.2",
+    "fflate": "^0.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0",
+    "vitest": "^4.0.0"
+  }
+}

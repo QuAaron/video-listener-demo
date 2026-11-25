@@ -1,0 +1,36 @@
+[
+  {
+    "id": "clear",
+    "image": "clear.jpg",
+    "transcript": "【合成测试讲解，非ASR】这是虚构的DEMOCO，代码DEMO，不是真实股票行情。D1是100，D2为110，D3为105，D4为120。整体上升，中间D2到D3有回落。不提供投资建议。",
+    "expected": {
+      "ticker": "DEMO",
+      "title": "DEMOCO",
+      "values": [
+        100,
+        110,
+        105,
+        120
+      ],
+      "trend": "overall up with D2 to D3 dip"
+    }
+  },
+  {
+    "id": "conflict",
+    "image": "clear.jpg",
+    "transcript": "【合成测试讲解，非ASR，故意包含错误】讲者声称这个虚构DEMO图表从D1的100下跌到D4的80，整体是下跌。请核对音画是否冲突，不要据此给投资建议。",
+    "expected": {
+      "conflict": "chart is 100 to 120 up; speaker claims 100 to 80 down"
+    }
+  },
+  {
+    "id": "blurred",
+    "image": "blurred.jpg",
+    "transcript": "【合成测试讲解，非ASR】画面上的股票代码和具体数字我没有念出，请不要猜测。",
+    "expected": {
+      "readability": "partial or unreadable",
+      "ticker": "cannot read",
+      "numbers": "cannot read"
+    }
+  }
+]
