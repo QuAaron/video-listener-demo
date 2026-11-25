@@ -7,15 +7,15 @@ export function visionMiddleware(req:IncomingMessage,res:ServerResponse,next:()=
  const path=req.url.split('?')[0];const reply=(status:number,data:unknown)=>{if(!res.destroyed){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));}};
  const host=req.headers.host??'';
  if(!/^(127\.0\.0\.1|localhost):\d+$/.test(host))return reply(403,{error:'只接受本机localhost访问'});
- if(req.method==='POST'&&(req.headers.origin!==`http://${host}`||!req.headers['content-type']?.startsWith('application/json')))return reply(403,{error:'仅接受本机同源JSON请求'});
+ if(req.method==='POST'&&(req.headers.origin!==`http://${host}`||req.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json'))return reply(403,{error:'仅接受本机同源JSON请求'});
  if(!['/api/local-vision/health','/api/local-vision/analyze','/api/local-vision/unload'].includes(path))return reply(404,{error:'未知接口'});
  if(path.endsWith('/health')?req.method!=='GET':req.method!=='POST')return reply(405,{error:'请求方法不支持'});
  if(active)return reply(409,{error:'本地视觉模型正在处理另一个请求；请等待或取消'});
  active=true;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),VISION_BUDGET.timeoutMs);
  req.on('aborted',()=>controller.abort());res.on('close',()=>controller.abort());
- const invoke=async(endpoint:string,body:unknown)=>{const r=await fetch(UPSTREAM+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});const text=await r.text();if(!r.ok)throw Error(`llama.cpp ${r.status}: ${text.slice(0,600)}`);return JSON.parse(text);};
+ const invoke=async(endpoint:string,body:unknown)=>{const r=await fetch(UPSTREAM+endpoint,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});const text=await r.text();if(!r.ok)throw Error(`llama.cpp ${r.status}: ${text.slice(0,600)}`);return JSON.parse(text);};
  void(async()=>{try{
-  if(path.endsWith('/health')){const r=await fetch(UPSTREAM+'/props',{signal:controller.signal});if(!r.ok)throw Error(`llama.cpp ${r.status}`);const show=await r.json();if(show.model_alias!==VISION_MODEL)throw Error('服务模型别名不匹配，请使用本Demo启动脚本');if(!show.modalities?.vision)throw Error('服务未报告视觉编码器能力');reply(200,{ready:true,model:VISION_MODEL,upstream:UPSTREAM,capabilities:['text','vision']});return;}
+  if(path.endsWith('/health')){const r=await fetch(UPSTREAM+'/props',{redirect:'error',signal:controller.signal});if(!r.ok)throw Error(`llama.cpp ${r.status}`);const show=await r.json();if(show.model_alias!==VISION_MODEL)throw Error('服务模型别名不匹配，请使用本Demo启动脚本');if(!show.modalities?.vision)throw Error('服务未报告视觉编码器能力');reply(200,{ready:true,model:VISION_MODEL,upstream:UPSTREAM,capabilities:['text','vision']});return;}
   let size=0;const parts:Buffer[]=[];for await(const part of req){size+=part.length;if(size>3_000_000)throw Error('请求超过3MB硬预算');parts.push(Buffer.from(part));}const input=JSON.parse(Buffer.concat(parts).toString());
   if(path.endsWith('/unload')){reply(200,{released:false,note:'llama.cpp服务由启动终端管理，模型常驻；关闭该终端或Ctrl-C释放内存。'});return;}
   let messages:unknown,format:unknown;

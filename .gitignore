@@ -8,3 +8,8 @@ model-cache/
 test-results/
 
 .vision-models/
+
+.env
+.env.*
+!.env.example
+*.zip

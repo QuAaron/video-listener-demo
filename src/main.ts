@@ -23,7 +23,7 @@ $('app').innerHTML=`
    <div class="actions"><button id="start" class="primary" disabled>开始共享</button><label><input type="checkbox" id="quiet"> 仅转写，自己不听视频</label><button id="stop" disabled>停止并完成队列</button><button id="cancel" class="danger" disabled>取消任务 / 释放模型</button></div>
    <label><input id="detect-end" type="checkbox"> 疑似播完自动停止（连续 60 秒静音且画面静止）</label>
    <div id="end-warning" hidden><span id="end-count" role="status"></span> <button id="keep-going">继续采集</button></div>
-   <p class="hint">Mac 共享整个屏幕不保证有声音。只请求屏幕/标签页共享，不请求麦克风。新会话会替换旧结果，请先导出。</p>
+   <p class="hint">仅接受视频标签页共享。只请求屏幕/标签页共享，不请求麦克风。新会话会替换旧结果，请先导出。</p>
    <details class="offline-test"><summary>用本地音频 / 公开样例测试同一识别通道</summary><p>测试不需要屏幕权限。只解码本机文件，不上传；最长 120 秒、最大 20 MB。</p><label for="file">音频文件（WAV / MP3 等浏览器支持格式）</label><input class="file" id="file" type="file" accept="audio/*"><button id="file-run" class="testbtn" disabled>转写所选文件</button><button id="sample" class="testbtn" disabled>运行公开 JFK 英语样例</button><p>公开样例是单独测试，不是实际视频结果。没有预置字幕。音频来自 Hugging Face 文档的公开示例。</p></details>
   </section>
   <section class="card"><div class="statusbar"><span id="state" class="state"><i class="dot"></i>尚未开始</span><span id="device" class="small">模型未加载</span></div>
@@ -188,8 +188,9 @@ async function start(){if(lifecycle.phase!=='ready')return;language=val('languag
  // Must run directly from this user click; no awaited model download before permission prompt.
  const muted=$<HTMLInputElement>('quiet').checked;
  if(muted&&!('suppressLocalAudioPlayback' in navigator.mediaDevices.getSupportedConstraints()))throw Error('浏览器不支持单独关闭视频声音；请使用桌面 Chrome，或取消静音选项。');
- const chosen=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser'},audio:{suppressLocalAudioPlayback:muted,echoCancellation:false,noiseSuppression:false,autoGainControl:false},selfBrowserSurface:'exclude',systemAudio:'include',surfaceSwitching:'exclude'} as DisplayMediaStreamOptions);
+ const chosen=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser'},audio:{suppressLocalAudioPlayback:muted,echoCancellation:false,noiseSuppression:false,autoGainControl:false},selfBrowserSurface:'exclude',systemAudio:'exclude',surfaceSwitching:'exclude'} as DisplayMediaStreamOptions);
  if(own!==token){chosen.getTracks().forEach(t=>t.stop());return;}
+ if(chosen.getVideoTracks()[0]?.getSettings().displaySurface!=='browser'){chosen.getTracks().forEach(t=>t.stop());throw Error('请选择视频所在的浏览器标签页。为避免采入其他应用的画面和声音，本次共享已停止。');}
  if(!chosen.getAudioTracks().length){chosen.getTracks().forEach(t=>t.stop());phase('ready');error('没有收到音轨。请重新选择“视频标签页”，勾选“共享标签页音频”；Mac整个屏幕/窗口可能不提供声音。没有启用麦克风兜底。');return;}
  const audio=chosen.getAudioTracks()[0];
  if(muted&&(audio.getSettings() as MediaTrackSettings & {suppressLocalAudioPlayback?:boolean}).suppressLocalAudioPlayback!==true){
